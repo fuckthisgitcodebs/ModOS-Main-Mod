@@ -10,8 +10,10 @@ import java.time.Instant
     tableName = "clips",
     indices = [
         Index(value = ["sourcePackage", "timestamp"], orders = [Index.Order.DESC, Index.Order.DESC]),
-        Index(value = ["clipType"]),
-        Index(value = ["hash"])
+        Index(value = ["isArchived", "timestamp"], orders = [Index.Order.ASC, Index.Order.DESC]),
+        Index(value = ["isArchived", "clipType", "timestamp"], orders = [Index.Order.ASC, Index.Order.ASC, Index.Order.DESC]),
+        Index(value = ["hash"], unique = true),
+        Index(value = ["isArchived", "timestamp", "contentPreview"])
     ]
 )
 data class ClipEntry(
@@ -29,7 +31,10 @@ data class ClipEntry(
     val tags: String? = null
 )
 
-@Fts4(contentEntity = ClipEntry::class)
+@Fts4(
+    contentEntity = ClipEntry::class,
+    tokenizer = FtsOptions.TOKENIZER_UNICODE61
+)
 @Entity(tableName = "clips_fts")
 data class ClipFts(
     val contentPreview: String,

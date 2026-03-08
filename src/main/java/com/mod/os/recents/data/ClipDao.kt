@@ -1,5 +1,6 @@
 package com.mod.os.recents.data
 
+import androidx.paging.PagingSource
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
@@ -8,6 +9,9 @@ interface ClipDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertClip(clip: ClipEntry): Long
+
+    @Transaction
+    suspend fun insertMultipleClips(clips: List<ClipEntry>)
 
     @Query("SELECT * FROM clips WHERE hash = :hash LIMIT 1")
     suspend fun findByHash(hash: String): ClipEntry?
@@ -18,8 +22,8 @@ interface ClipDao {
     @Query("SELECT * FROM clips WHERE isArchived = 0 ORDER BY timestamp DESC LIMIT :limit")
     fun getActiveClips(limit: Int): Flow<List<ClipEntry>>
 
-    @Query("SELECT * FROM clips WHERE isArchived = 1 ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
-    fun getArchivedClipsPaginated(limit: Int, offset: Int): Flow<List<ClipEntry>>
+    @Query("SELECT * FROM clips WHERE isArchived = 1 ORDER BY timestamp DESC")
+    fun getArchivedPagingSource(): PagingSource<Int, ClipEntry>
 
     @Query("""
         SELECT clips.* FROM clips
@@ -27,9 +31,8 @@ interface ClipDao {
         WHERE clips_fts MATCH :query
           AND clips.isArchived = 1
         ORDER BY clips.timestamp DESC
-        LIMIT :limit OFFSET :offset
     """)
-    fun searchArchivedPaginated(query: String, limit: Int, offset: Int): Flow<List<ClipEntry>>
+    fun searchArchivedPagingSource(query: String): PagingSource<Int, ClipEntry>
 
     @Query("DELETE FROM clips WHERE isArchived = 0 AND id NOT IN " +
            "(SELECT id FROM clips WHERE isArchived = 0 ORDER BY timestamp DESC LIMIT :keepCount)")

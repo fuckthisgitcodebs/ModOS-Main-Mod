@@ -27,9 +27,9 @@ class RecentsActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            MaterialTheme {
+            androidx.compose.material3.MaterialTheme {
                 RecentsScreen(
-                    repository = /* injected via Hilt or passed */,
+                    repository = com.mod.os.recents.di.RecentsEntryPoints.get(repository = ClipboardRepository::class.java),
                     onDismiss = { finishAfterTransition() },
                     modifier = Modifier
                         .fillMaxSize()

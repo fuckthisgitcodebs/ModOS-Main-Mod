@@ -2,15 +2,19 @@ package com.mod.os.recents.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mod.os.recents.clipboard.ClipboardMonitor
 import com.mod.os.recents.clipboard.ClipboardRepository
 import com.mod.os.recents.contract.HostBridge
 import com.mod.os.recents.data.RecentsDatabase
+import com.mod.os.recents.util.SensitivityDetector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.util.concurrent.Executors
 import javax.inject.Singleton
 
 @Module
@@ -27,7 +31,16 @@ object RecentsModule {
             RecentsDatabase::class.java,
             "recents_clipboard_db"
         )
-            .fallbackToDestructiveMigration() // for dev only; use migrations in prod
+            .setJournalMode(RoomDatabase.JournalMode.WAL)
+            .fallbackToDestructiveMigrationOnDowngrade()
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    db.execSQL("PRAGMA journal_mode = WAL;")
+                    db.execSQL("PRAGMA synchronous = NORMAL;")
+                    db.execSQL("PRAGMA cache_size = -20000;")
+                    db.execSQL("PRAGMA mmap_size = 268435456;")
+                }
+            })
             .build()
     }
 
@@ -38,10 +51,11 @@ object RecentsModule {
     @Provides
     @Singleton
     fun provideClipboardRepository(
-        clipDao: ClipDao,
-        hostBridge: HostBridge
+        clipDao: com.mod.os.recents.data.ClipDao,
+        hostBridge: HostBridge,
+        sensitivityDetector: SensitivityDetector
     ): ClipboardRepository {
-        return ClipboardRepository(clipDao, hostBridge)
+        return ClipboardRepository(clipDao, hostBridge, sensitivityDetector)
     }
 
     @Provides
@@ -53,6 +67,11 @@ object RecentsModule {
         return ClipboardMonitor(hostBridge, repository)
     }
 
-    // HostBridge is provided by the host app — module expects it injected from host
-    // If host uses Hilt too, consider @EntryPoint or component dependency
+    @Provides
+    @Singleton
+    fun provideSensitivityDetector(
+        hostBridge: HostBridge
+    ): SensitivityDetector {
+        return SensitivityDetector(hostBridge)
+    }
 }
