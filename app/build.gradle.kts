@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("dagger.hilt.android.plugin")
+    id("com.google.dagger.hilt.android")
     kotlin("kapt")
 }
 
@@ -17,12 +17,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
@@ -42,18 +48,31 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {
-    implementation(project(":recents")) // the Recents Module library
+    implementation(project(":recents"))
+    implementation(project(":minmod-notes"))
 
     implementation("com.google.dagger:hilt-android:2.51")
     kapt("com.google.dagger:hilt-compiler:2.51")
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.compose.ui:ui:1.7.0")
+    implementation("androidx.compose.ui:ui-graphics:1.7.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.7.0")
+    implementation("androidx.compose.material3:material3:1.3.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+
+    debugImplementation("androidx.compose.ui:ui-tooling:1.7.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.0")
 }
