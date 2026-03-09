@@ -78,7 +78,4 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.7.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.0")
-
-    // Accompanist blur - now resolvable with Google Maven repo
-    implementation("com.google.accompanist:accompanist-blur:0.34.0")
 }
