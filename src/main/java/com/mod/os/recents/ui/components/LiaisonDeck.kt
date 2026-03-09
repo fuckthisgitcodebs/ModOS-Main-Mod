@@ -11,11 +11,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.BlurEffect
 import com.mod.os.recents.data.ClipType
 import com.mod.os.recents.ui.ClipboardPreview
 
@@ -41,7 +45,9 @@ fun LiaisonDeck(
                     )
                 )
             )
-            .blur(20.dp)
+            .graphicsLayer {
+                renderEffect = BlurEffect(20f, 20f).asComposeRenderEffect()
+            }
             .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             .padding(16.dp)
     ) {

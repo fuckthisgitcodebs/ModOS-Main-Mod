@@ -56,7 +56,6 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.google.accompanist:accompanist-blur:0.34.0")
 
     implementation("com.google.dagger:hilt-android:2.51")
     kapt("com.google.dagger:hilt-compiler:2.51")
