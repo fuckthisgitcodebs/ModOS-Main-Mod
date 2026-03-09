@@ -19,8 +19,7 @@ class NoteEditorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // In real impl: extract ClipEntry from intent extras
-        val clip = intent.getParcelableExtra<ClipEntry>("clip") // Parcelable or Serializable
+        val clip = intent.getParcelableExtra<ClipEntry>("clip")
 
         setContent {
             MaterialTheme {
