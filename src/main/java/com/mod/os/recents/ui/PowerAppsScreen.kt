@@ -5,10 +5,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mod.os.recents.clipboard.ClipboardRepository
 import com.mod.os.recents.contract.HostBridge
+import kotlinx.coroutines.launch
 
 @Composable
 fun PowerAppsScreen(
@@ -17,8 +19,8 @@ fun PowerAppsScreen(
     modifier: Modifier = Modifier
 ) {
     var currentPowerApps by remember { mutableStateOf(repository.getPowerApps()) }
+    val scope = rememberCoroutineScope()
 
-    // Placeholder installed apps list — in production, query PackageManager via host
     val installedApps = listOf(
         "com.android.chrome" to "Chrome",
         "com.termux" to "Termux",
@@ -64,7 +66,7 @@ fun PowerAppsScreen(
                             }
                             currentPowerApps = updated
                             hostBridge.setPowerAppsPackageNames(updated)
-                            repository.setPowerApps(updated)
+                            scope.launch { repository.setPowerApps(updated) }
                         }
                     )
                 }

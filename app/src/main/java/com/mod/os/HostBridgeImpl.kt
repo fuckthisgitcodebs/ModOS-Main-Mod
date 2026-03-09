@@ -3,7 +3,7 @@ package com.mod.os
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import com.mod.os.recents.clipboard.ClipboardObserverCallback
+import com.mod.os.recents.contract.ClipboardObserverCallback
 import com.mod.os.recents.contract.HostBridge
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -23,12 +23,11 @@ class HostBridgeImpl @Inject constructor(
     override fun getSharedPreferences(): SharedPreferences = prefs
 
     override fun requestAccessibilityPermissionIfNeeded(onGranted: () -> Unit) {
-        // Host can show UI prompt here; for now just assume granted
         onGranted()
     }
 
     override fun triggerHostAction(actionId: String, payload: Bundle?) {
-        // Future: handle actions from modules (e.g., create note, launch external)
+        // Future: handle actions from modules
     }
 
     override fun getPowerAppsPackageNames(): Set<String> {
@@ -51,12 +50,8 @@ class HostBridgeImpl @Inject constructor(
         }
     }
 
-    override fun isPackageSensitive(packageName: String): Boolean? {
-        // Host-level override; return null to fall back to pattern detection
-        return null
-    }
+    override fun isPackageSensitive(packageName: String): Boolean? = null
 
-    // Called by AccessibilityService when clipboard changes
     fun notifyClipboardChanged(
         content: String?,
         mimeType: String?,

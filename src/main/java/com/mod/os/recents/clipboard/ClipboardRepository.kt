@@ -1,6 +1,9 @@
 package com.mod.os.recents.clipboard
 
 import android.content.SharedPreferences
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import com.mod.os.recents.contract.HostBridge
 import com.mod.os.recents.data.ClipDao
 import com.mod.os.recents.data.ClipEntry
@@ -39,6 +42,16 @@ class ClipboardRepository @Inject constructor(
     fun observeActiveClipsForPackage(packageName: String): Flow<List<ClipEntry>> {
         return clipDao.observeActiveClipsForPackage(packageName)
     }
+
+    fun getArchivedPagingFlow(): Flow<PagingData<ClipEntry>> = Pager(
+        config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+        pagingSourceFactory = { clipDao.getArchivedPagingSource() }
+    ).flow
+
+    fun searchArchivedPagingFlow(query: String): Flow<PagingData<ClipEntry>> = Pager(
+        config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+        pagingSourceFactory = { clipDao.searchArchivedPagingSource(query) }
+    ).flow
 
     suspend fun addClipboardContent(
         content: String,

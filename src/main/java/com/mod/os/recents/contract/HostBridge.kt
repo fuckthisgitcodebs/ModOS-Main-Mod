@@ -2,7 +2,6 @@ package com.mod.os.recents.contract
 
 import android.content.SharedPreferences
 import android.os.Bundle
-import com.mod.os.recents.clipboard.ClipboardObserverCallback
 
 interface HostBridge {
     fun getSharedPreferences(): SharedPreferences

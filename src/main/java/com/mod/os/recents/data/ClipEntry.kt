@@ -1,6 +1,7 @@
 package com.mod.os.recents.data
 
 import androidx.room.Entity
+import androidx.room.FtsOptions
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Fts4

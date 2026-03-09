@@ -2,9 +2,11 @@ package com.mod.os.recents.data
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
+import java.time.Instant
 
 @Database(
     entities = [ClipEntry::class, ClipFts::class],

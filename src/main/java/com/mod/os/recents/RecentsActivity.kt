@@ -5,11 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.mod.os.recents.clipboard.ClipboardMonitor
+import com.mod.os.recents.clipboard.ClipboardRepository
 import com.mod.os.recents.ui.RecentsScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -19,6 +21,7 @@ import javax.inject.Inject
 class RecentsActivity : ComponentActivity() {
 
     @Inject lateinit var clipboardMonitor: ClipboardMonitor
+    @Inject lateinit var repository: ClipboardRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,7 +32,7 @@ class RecentsActivity : ComponentActivity() {
         setContent {
             androidx.compose.material3.MaterialTheme {
                 RecentsScreen(
-                    repository = com.mod.os.recents.di.RecentsEntryPoints.get(repository = ClipboardRepository::class.java),
+                    repository = repository,
                     onDismiss = { finishAfterTransition() },
                     modifier = Modifier
                         .fillMaxSize()

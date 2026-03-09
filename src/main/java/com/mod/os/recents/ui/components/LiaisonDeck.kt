@@ -1,5 +1,7 @@
 package com.mod.os.recents.ui.components
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -13,64 +15,90 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-    .background(
-        brush = Brush.verticalGradient(
-            0.0f to Color.Transparent,
-            0.3f to Color.Black.copy(alpha = 0.7f),
-            1.0f to Color.Black
-        )
-    )
-    .graphicsLayer {
-        renderEffect = RenderEffect.createBlurEffect(
-            radiusX = 24f,
-            radiusY = 24f,
-            edgeTreatment = ShaderSource.TileMode.CLAMP
-        ).asComposeRenderEffect()
-    }
-    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-    .padding(16.dp)
-) {
-    clipboardPreview?.let { preview ->
-        ClipboardPreviewCard(preview = preview)
-        Spacer(modifier = Modifier.height(16.dp))
-    }
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.mod.os.recents.data.ClipType
+import com.mod.os.recents.ui.ClipboardPreview
 
-    if (suggestedActions.isNotEmpty()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            suggestedActions.forEach { action ->
-                Button(
-                    onClick = { onActionSelected(action) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = accentPrimary.copy(alpha = 0.85f)
-                    )
-                ) {
-                    Text(action.label)
+@Composable
+fun LiaisonDeck(
+    clipboardPreview: ClipboardPreview?,
+    detectedType: ClipType?,
+    suggestedActions: List<ActionItem>,
+    onActionSelected: (ActionItem) -> Unit,
+    accentPrimary: Color,
+    accentSecondary: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    0.0f to Color.Transparent,
+                    0.3f to Color.Black.copy(alpha = 0.7f),
+                    1.0f to Color.Black
+                )
+            )
+            .graphicsLayer {
+                renderEffect = RenderEffect.createBlurEffect(
+                    24f,
+                    24f,
+                    Shader.TileMode.CLAMP
+                ).asComposeRenderEffect()
+            }
+            .border(
+                1.dp,
+                Color.White.copy(alpha = 0.08f),
+                RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            )
+            .padding(16.dp)
+    ) {
+        clipboardPreview?.let { preview ->
+            ClipboardPreviewCard(preview = preview)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        if (suggestedActions.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                suggestedActions.forEach { action ->
+                    Button(
+                        onClick = { onActionSelected(action) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accentPrimary.copy(alpha = 0.85f)
+                        )
+                    ) {
+                        Text(action.label)
+                    }
                 }
             }
+        } else if (detectedType != null && detectedType != ClipType.TEXT_PLAIN) {
+            Text(
+                text = "Detected: ${detectedType.name.replace("TEXT_", "")}",
+                color = accentSecondary,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
-    } else if (detectedType != null && detectedType != ClipType.TEXT_PLAIN) {
+
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Detected: ${detectedType.name.replace("TEXT_", "")}",
-            color = accentSecondary,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 8.dp)
+            text = "Module docking area (mini-mods & bridges)",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.5f)
         )
     }
-
-    Spacer(modifier = Modifier.height(16.dp))
-    Text(
-        text = "Module docking area (mini-mods & bridges)",
-        style = MaterialTheme.typography.bodySmall,
-        color = Color.White.copy(alpha = 0.5f)
-    )
 }
 
 @Composable
@@ -94,7 +122,7 @@ fun ClipboardPreviewCard(
                 color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 3,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

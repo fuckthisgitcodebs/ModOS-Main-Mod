@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -18,7 +19,6 @@ import javax.inject.Inject
 @ActivityRetainedScoped
 class NotesMiniMod @Inject constructor() {
 
-    // Called by host docking manager to determine if this mini-mod wants to display these clips
     fun shouldDock(clips: List<ClipEntry>): Boolean {
         return clips.any { clip ->
             clip.clipType in listOf(

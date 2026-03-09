@@ -3,6 +3,7 @@ package com.mod.os.recents.data
 import androidx.paging.PagingSource
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 @Dao
 interface ClipDao {
@@ -10,7 +11,7 @@ interface ClipDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertClip(clip: ClipEntry): Long
 
-    @Transaction
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMultipleClips(clips: List<ClipEntry>)
 
     @Query("SELECT * FROM clips WHERE hash = :hash LIMIT 1")
