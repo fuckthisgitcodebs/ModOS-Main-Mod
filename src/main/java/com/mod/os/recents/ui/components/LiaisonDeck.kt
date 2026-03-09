@@ -6,6 +6,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,9 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.unit.dp
 import com.mod.os.recents.data.ClipType
 import com.mod.os.recents.ui.ClipboardPreview
 
@@ -38,17 +39,15 @@ fun LiaisonDeck(
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.6f),
-                        Color.Black.copy(alpha = 0.95f)
-                    )
+                    0.0f to Color.Transparent,
+                    0.3f to Color.Black.copy(alpha = 0.7f),
+                    1.0f to Color.Black
                 )
             )
             .graphicsLayer {
-                renderEffect = BlurEffect(20f, 20f).asComposeRenderEffect()
+                renderEffect = BlurEffect(24f, 24f).asComposeRenderEffect()
             }
-            .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             .padding(16.dp)
     ) {
         clipboardPreview?.let { preview ->
