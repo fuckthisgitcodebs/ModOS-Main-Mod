@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.mod.os.recents.data.ClipType

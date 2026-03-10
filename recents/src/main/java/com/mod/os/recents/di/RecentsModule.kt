@@ -31,7 +31,7 @@ object RecentsModule {
             RecentsDatabase::class.java,
             "recents_clipboard_db"
         )
-            .setJournalMode(RoomDatabase.JournalMode.WAL)
+            .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .fallbackToDestructiveMigrationOnDowngrade()
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
