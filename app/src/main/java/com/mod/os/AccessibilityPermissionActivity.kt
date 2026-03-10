@@ -138,6 +138,6 @@ fun AccessibilityPromptScreen() {
 
 private fun isAccessibilityServiceEnabled(context: Context): Boolean {
     val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
-    val enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityManager.FLAG_REPORT_VIEW_IDS)
+    val enabledServices = am.getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
     return enabledServices.any { it.id.contains(context.packageName) }
 }
