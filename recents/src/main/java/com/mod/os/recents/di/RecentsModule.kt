@@ -35,7 +35,6 @@ object RecentsModule {
             .fallbackToDestructiveMigrationOnDowngrade()
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
-                    db.execSQL("PRAGMA journal_mode = WAL;")
                     db.execSQL("PRAGMA synchronous = NORMAL;")
                     db.execSQL("PRAGMA cache_size = -20000;")
                     db.execSQL("PRAGMA mmap_size = 268435456;")
