@@ -3,7 +3,6 @@ package com.mod.os.recents.di
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mod.os.recents.clipboard.ClipboardMonitor
 import com.mod.os.recents.clipboard.ClipboardRepository
 import com.mod.os.recents.contract.HostBridge
@@ -14,7 +13,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import java.util.concurrent.Executors
 import javax.inject.Singleton
 
 @Module
@@ -33,13 +31,6 @@ object RecentsModule {
         )
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .fallbackToDestructiveMigrationOnDowngrade()
-            .addCallback(object : RoomDatabase.Callback() {
-                override fun onOpen(db: SupportSQLiteDatabase) {
-                    db.execSQL("PRAGMA synchronous = NORMAL;")
-                    db.execSQL("PRAGMA cache_size = -20000;")
-                    db.execSQL("PRAGMA mmap_size = 268435456;")
-                }
-            })
             .build()
     }
 
