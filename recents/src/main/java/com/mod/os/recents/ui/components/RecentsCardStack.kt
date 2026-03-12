@@ -56,12 +56,16 @@ fun RecentsCardStack(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
             ) {
                 Box {
-                    AsyncImage(
-                        model = app.previewUri,
-                        contentDescription = "${app.label} preview",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
+                    if (app.previewUri != null) {
+                        AsyncImage(
+                            model = app.previewUri,
+                            contentDescription = "${app.label} preview",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF2A2A2A)))
+                    }
 
                     if (app.isSensitive) {
                         Box(

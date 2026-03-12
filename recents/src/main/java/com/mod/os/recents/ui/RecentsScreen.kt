@@ -29,7 +29,7 @@ fun RecentsScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(Color.Black.copy(alpha = 0.88f))
             .systemBarsPadding()
     ) {
         RecentsCardStack(
