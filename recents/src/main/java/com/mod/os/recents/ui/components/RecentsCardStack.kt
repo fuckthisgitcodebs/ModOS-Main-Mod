@@ -57,7 +57,7 @@ fun RecentsCardStack(
             ) {
                 Box {
                     AsyncImage(
-                        model = app.previewUri ?: "https://via.placeholder.com/512x280?text=${app.label}",
+                        model = app.previewUri,
                         contentDescription = "${app.label} preview",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
