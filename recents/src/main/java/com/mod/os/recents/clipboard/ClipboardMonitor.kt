@@ -5,6 +5,7 @@ import com.mod.os.recents.contract.HostBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,7 +16,11 @@ class ClipboardMonitor @Inject constructor(
     private val repository: ClipboardRepository
 ) : ClipboardObserverCallback {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // FIX: Named job reference so stopMonitoring() can cancel pending coroutines.
+    // Previously the scope had no handle — stop was unregister-only, coroutines
+    // launched via scope.launch{} would outlive the monitoring session.
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + Dispatchers.IO)
 
     fun startMonitoring() {
         hostBridge.registerClipboardObserver(this)
@@ -23,6 +28,7 @@ class ClipboardMonitor @Inject constructor(
 
     fun stopMonitoring() {
         hostBridge.unregisterClipboardObserver(this)
+        job.cancel() // FIX: cancel any in-flight addClipboardContent coroutines
     }
 
     override fun onClipboardChanged(

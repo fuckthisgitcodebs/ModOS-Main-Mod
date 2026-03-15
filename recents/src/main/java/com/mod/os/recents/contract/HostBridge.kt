@@ -16,5 +16,14 @@ interface HostBridge {
     fun registerClipboardObserver(callback: ClipboardObserverCallback)
     fun unregisterClipboardObserver(callback: ClipboardObserverCallback)
 
+    /**
+     * Returns true if [packageName] is explicitly user-flagged sensitive,
+     * false if explicitly flagged non-sensitive, null to defer to
+     * SensitivityDetector's regex heuristics.
+     */
     fun isPackageSensitive(packageName: String): Boolean?
+
+    // FIX: Exposed so UI (future settings screen) or tests can mark/unmark
+    // packages without reaching into HostBridgeImpl directly.
+    fun setPackageSensitive(packageName: String, sensitive: Boolean)
 }
