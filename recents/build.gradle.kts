@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.mod.os.recents"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 34
@@ -57,6 +57,5 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.51")
     kapt("com.google.dagger:hilt-compiler:2.51")
 
-    // FIX: Required for hiltViewModel() in Compose — was missing
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 }
