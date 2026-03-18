@@ -1,18 +1,31 @@
 plugins {
-    id("com.android.library")
+    id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("androidx.room")
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.plugin.compose")
     kotlin("kapt")
 }
 
 android {
-    namespace = "com.mod.os.recents"
+    namespace = "com.mod.os"
     compileSdk = 34
 
     defaultConfig {
+        applicationId = "com.mod.os"
         minSdk = 34
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     buildFeatures {
@@ -29,13 +42,11 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
-
-    room {
-        schemaDirectory("$projectDir/schemas")
-    }
 }
 
 dependencies {
+    implementation(project(":recents"))
+
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.compose.ui:ui:1.7.0")
@@ -44,19 +55,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
 
-    implementation("androidx.paging:paging-runtime:3.3.0")
-    implementation("androidx.paging:paging-compose:3.3.0")
-
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    implementation("androidx.room:room-paging:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-
-    implementation("io.coil-kt:coil-compose:2.7.0")
-
     implementation("com.google.dagger:hilt-android:2.51")
     kapt("com.google.dagger:hilt-compiler:2.51")
 
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 }
-
