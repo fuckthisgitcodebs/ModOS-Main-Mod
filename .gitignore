@@ -1,1 +1,12 @@
 local.properties
+# Gradle build outputs
+build/
+app/build/
+recents/build/
+minmod-notes/build/
+.gradle/
+.kotlin/
+build/reports/
+
+# Room schemas — commit these, they're migration history
+# recents/schemas/

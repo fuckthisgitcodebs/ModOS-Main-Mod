@@ -1,0 +1,209 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "45e477ef1ec0a0275460a5535d974a4f",
+    "entities": [
+      {
+        "tableName": "clips",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sourcePackage` TEXT NOT NULL, `appLabel` TEXT, `contentPreview` TEXT NOT NULL, `fullContent` TEXT NOT NULL, `mimeType` TEXT, `hash` TEXT NOT NULL, `clipType` TEXT NOT NULL, `isSensitive` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `tags` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePackage",
+            "columnName": "sourcePackage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appLabel",
+            "columnName": "appLabel",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "contentPreview",
+            "columnName": "contentPreview",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullContent",
+            "columnName": "fullContent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "hash",
+            "columnName": "hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clipType",
+            "columnName": "clipType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSensitive",
+            "columnName": "isSensitive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_clips_sourcePackage_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sourcePackage",
+              "timestamp"
+            ],
+            "orders": [
+              "DESC",
+              "DESC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_clips_sourcePackage_timestamp` ON `${TABLE_NAME}` (`sourcePackage` DESC, `timestamp` DESC)"
+          },
+          {
+            "name": "index_clips_isArchived_timestamp",
+            "unique": false,
+            "columnNames": [
+              "isArchived",
+              "timestamp"
+            ],
+            "orders": [
+              "ASC",
+              "DESC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_clips_isArchived_timestamp` ON `${TABLE_NAME}` (`isArchived` ASC, `timestamp` DESC)"
+          },
+          {
+            "name": "index_clips_isArchived_clipType_timestamp",
+            "unique": false,
+            "columnNames": [
+              "isArchived",
+              "clipType",
+              "timestamp"
+            ],
+            "orders": [
+              "ASC",
+              "ASC",
+              "DESC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_clips_isArchived_clipType_timestamp` ON `${TABLE_NAME}` (`isArchived` ASC, `clipType` ASC, `timestamp` DESC)"
+          },
+          {
+            "name": "index_clips_hash",
+            "unique": true,
+            "columnNames": [
+              "hash"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_clips_hash` ON `${TABLE_NAME}` (`hash`)"
+          },
+          {
+            "name": "index_clips_isArchived_timestamp_contentPreview",
+            "unique": false,
+            "columnNames": [
+              "isArchived",
+              "timestamp",
+              "contentPreview"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_clips_isArchived_timestamp_contentPreview` ON `${TABLE_NAME}` (`isArchived`, `timestamp`, `contentPreview`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "unicode61",
+          "tokenizerArgs": [],
+          "contentTable": "clips",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_clips_fts_BEFORE_UPDATE BEFORE UPDATE ON `clips` BEGIN DELETE FROM `clips_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_clips_fts_BEFORE_DELETE BEFORE DELETE ON `clips` BEGIN DELETE FROM `clips_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_clips_fts_AFTER_UPDATE AFTER UPDATE ON `clips` BEGIN INSERT INTO `clips_fts`(`docid`, `contentPreview`, `fullContent`, `tags`) VALUES (NEW.`rowid`, NEW.`contentPreview`, NEW.`fullContent`, NEW.`tags`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_clips_fts_AFTER_INSERT AFTER INSERT ON `clips` BEGIN INSERT INTO `clips_fts`(`docid`, `contentPreview`, `fullContent`, `tags`) VALUES (NEW.`rowid`, NEW.`contentPreview`, NEW.`fullContent`, NEW.`tags`); END"
+        ],
+        "tableName": "clips_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`contentPreview` TEXT NOT NULL, `fullContent` TEXT NOT NULL, `tags` TEXT, tokenize=unicode61, content=`clips`)",
+        "fields": [
+          {
+            "fieldPath": "contentPreview",
+            "columnName": "contentPreview",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullContent",
+            "columnName": "fullContent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '45e477ef1ec0a0275460a5535d974a4f')"
+    ]
+  }
+}
