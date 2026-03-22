@@ -1,7 +1,5 @@
 package com.mod.os.recents.ui.components
 
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -17,10 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mod.os.recents.data.ClipType
@@ -39,20 +34,10 @@ fun LiaisonDeck(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    0.0f to Color.Transparent,
-                    0.3f to Color.Black.copy(alpha = 0.7f),
-                    1.0f to Color.Black
-                )
-            )
-            .graphicsLayer {
-                renderEffect = RenderEffect.createBlurEffect(
-                    24f,
-                    24f,
-                    Shader.TileMode.CLAMP
-                ).asComposeRenderEffect()
-            }
+            // FIX: Replaced transparent gradient + RenderEffect blur with a solid
+            // dark surface. The blur was compositing against Color.Transparent and
+            // rendering the entire panel invisible (pure black output).
+            .background(Color(0xFF0D0D0D))
             .border(
                 1.dp,
                 Color.White.copy(alpha = 0.08f),
@@ -108,7 +93,7 @@ fun ClipboardPreviewCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F0F))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
