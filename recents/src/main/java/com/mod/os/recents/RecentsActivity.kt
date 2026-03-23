@@ -9,18 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.lifecycleScope
-import com.mod.os.recents.clipboard.ClipboardMonitor
 import com.mod.os.recents.ui.RecentsScreen
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class RecentsActivity : ComponentActivity() {
-
-    // repository removed — now owned by RecentsViewModel via hiltViewModel()
-    @Inject lateinit var clipboardMonitor: ClipboardMonitor
+    // FIX: Removed ClipboardMonitor injection — monitoring now lives in
+    // AccessibilityDelegateService, independent of this activity's lifecycle
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,10 +38,6 @@ class RecentsActivity : ComponentActivity() {
             R.anim.edge_slide_in,
             android.R.anim.fade_out
         )
-
-        lifecycleScope.launch {
-            clipboardMonitor.startMonitoring()
-        }
     }
 
     override fun finish() {
@@ -55,10 +46,5 @@ class RecentsActivity : ComponentActivity() {
             android.R.anim.fade_in,
             R.anim.edge_slide_out
         )
-    }
-
-    override fun onDestroy() {
-        clipboardMonitor.stopMonitoring()
-        super.onDestroy()
     }
 }

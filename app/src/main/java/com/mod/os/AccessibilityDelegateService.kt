@@ -3,6 +3,7 @@ package com.mod.os
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipboardManager
 import android.view.accessibility.AccessibilityEvent
+import com.mod.os.recents.clipboard.ClipboardMonitor
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -10,6 +11,9 @@ import javax.inject.Inject
 class AccessibilityDelegateService : AccessibilityService() {
 
     @Inject lateinit var hostBridge: HostBridgeImpl
+    // FIX: ClipboardMonitor starts here, not in RecentsActivity.
+    // Monitoring lifetime = service lifetime, not activity lifetime.
+    @Inject lateinit var clipboardMonitor: ClipboardMonitor
 
     private var lastClip: String? = null
     private var lastForegroundPackage: String? = null
@@ -36,12 +40,14 @@ class AccessibilityDelegateService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         clipboardManager.addPrimaryClipChangedListener(clipListener)
+        // FIX: Start monitoring here so clips are captured regardless of
+        // whether RecentsActivity is open
+        clipboardMonitor.startMonitoring()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: return
-            // Ignore system UI and our own app
             if (pkg == packageName || pkg == "com.android.systemui") return
             lastForegroundPackage = pkg
             lastForegroundLabel = try {
@@ -57,7 +63,8 @@ class AccessibilityDelegateService : AccessibilityService() {
     override fun onInterrupt() {}
 
     override fun onDestroy() {
-        super.onDestroy()
+        clipboardMonitor.stopMonitoring()
         clipboardManager.removePrimaryClipChangedListener(clipListener)
+        super.onDestroy()
     }
 }
