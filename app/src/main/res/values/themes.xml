@@ -10,8 +10,6 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowNoTitle">true</item>
-        <!-- FIX: Removed android:windowFullscreen=true — was fighting enableEdgeToEdge()
-             causing status bar to flash in on enter animation then get hidden by theme -->
         <item name="android:windowContentOverlay">@null</item>
         <item name="colorPrimary">@color/cyan_primary</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

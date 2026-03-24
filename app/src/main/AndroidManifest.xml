@@ -53,6 +53,11 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- FIX: Overlay service for Android 12+ clipboard access -->
+        <service
+            android:name=".ClipboardOverlayService"
+            android:exported="false" />
+
     </application>
 
 </manifest>
