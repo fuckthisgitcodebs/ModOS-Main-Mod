@@ -2,17 +2,8 @@ package com.mod.os
 
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 
-/**
- * Utility for extracting text from the accessibility node tree.
- * Handles both selectable and non-selectable text — buttons, labels,
- * notifications, status bar elements, anything the OS renders as a View.
- *
- * Two extraction modes:
- * - extractAll(): dumps every text string visible on screen
- * - extractAtPoint(): finds the node at/nearest to given screen coordinates
- *   and returns its text plus its ancestors' context text
- */
 object ScreenTextExtractor {
 
     data class ExtractedNode(
@@ -23,19 +14,71 @@ object ScreenTextExtractor {
     )
 
     /**
-     * Recursively walk the full node tree from root, collecting all
-     * text and content descriptions regardless of selectability.
+     * Extract all text from all windows EXCEPT ModOS's own overlay windows.
+     * This is critical — if we use rootInActiveWindow when our overlay is
+     * visible, we get our own empty UI tree back, not the underlying app.
      */
+    fun extractAllFromBackground(
+        windows: List<AccessibilityWindowInfo>,
+        ownPackage: String
+    ): List<ExtractedNode> {
+        val results = mutableListOf<ExtractedNode>()
+        for (window in windows) {
+            // Skip our own overlay windows
+            val root = window.root ?: continue
+            try {
+                if (root.packageName?.toString() == ownPackage) {
+                    root.recycle()
+                    continue
+                }
+                traverseNode(root, results)
+            } catch (_: Exception) {}
+        }
+        return results
+    }
+
+    /**
+     * Find text at screen coordinates across all non-ModOS windows.
+     */
+    fun extractAtPointFromBackground(
+        windows: List<AccessibilityWindowInfo>,
+        ownPackage: String,
+        x: Int,
+        y: Int
+    ): List<ExtractedNode> {
+        val results = mutableListOf<ExtractedNode>()
+        for (window in windows) {
+            val root = window.root ?: continue
+            try {
+                if (root.packageName?.toString() == ownPackage) {
+                    root.recycle()
+                    continue
+                }
+                findNodeAtPoint(root, x, y, results)
+            } catch (_: Exception) {}
+        }
+        // If nothing at exact point, fall back to full dump of background
+        if (results.isEmpty()) {
+            for (window in windows) {
+                val root = window.root ?: continue
+                try {
+                    if (root.packageName?.toString() == ownPackage) {
+                        root.recycle()
+                        continue
+                    }
+                    traverseNode(root, results)
+                } catch (_: Exception) {}
+            }
+        }
+        return results
+    }
+
     fun extractAll(root: AccessibilityNodeInfo?): List<ExtractedNode> {
         val results = mutableListOf<ExtractedNode>()
         traverseNode(root, results)
         return results
     }
 
-    /**
-     * Find the most specific node whose bounds contain the given screen
-     * coordinates, then return its text and its immediate context.
-     */
     fun extractAtPoint(root: AccessibilityNodeInfo?, x: Int, y: Int): List<ExtractedNode> {
         val results = mutableListOf<ExtractedNode>()
         findNodeAtPoint(root, x, y, results)
@@ -64,30 +107,26 @@ object ScreenTextExtractor {
                     )
                 )
             }
-
             for (i in 0 until node.childCount) {
                 traverseNode(node.getChild(i), results)
             }
         } finally {
-            node.recycle()
+            try { node.recycle() } catch (_: Exception) {}
         }
     }
 
     private fun findNodeAtPoint(
         node: AccessibilityNodeInfo?,
-        x: Int,
-        y: Int,
+        x: Int, y: Int,
         results: MutableList<ExtractedNode>
     ) {
         node ?: return
         try {
             val bounds = Rect()
             node.getBoundsInScreen(bounds)
-
             if (bounds.contains(x, y)) {
                 val text = node.text?.toString()?.takeIf { it.isNotBlank() }
                     ?: node.contentDescription?.toString()?.takeIf { it.isNotBlank() }
-
                 if (text != null) {
                     results.add(
                         ExtractedNode(
@@ -98,14 +137,12 @@ object ScreenTextExtractor {
                         )
                     )
                 }
-
-                // Recurse into children to find the most specific hit
                 for (i in 0 until node.childCount) {
                     findNodeAtPoint(node.getChild(i), x, y, results)
                 }
             }
         } finally {
-            node.recycle()
+            try { node.recycle() } catch (_: Exception) {}
         }
     }
 }

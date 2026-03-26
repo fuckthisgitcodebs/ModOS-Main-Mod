@@ -36,20 +36,6 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * Floating overlay service that provides two UI elements:
- *
- * 1. A persistent circular trigger button (cyan, draggable, stays on screen)
- *    Tapping activates highlight mode.
- *
- * 2. When highlight mode is active: a full-screen transparent touch interceptor.
- *    Wherever the user taps, ScreenTextExtractor finds the accessibility node
- *    at those coordinates. All text found is presented in a bottom sheet where
- *    the user can copy individual strings to clipboard.
- *
- * The trigger button is draggable so the user can position it anywhere
- * on screen without it blocking content they need to interact with.
- */
 @AndroidEntryPoint
 class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -66,12 +52,8 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
     private var triggerButtonView: ComposeView? = null
     private var interceptorView: ComposeView? = null
     private var resultSheetView: ComposeView? = null
-
     private var highlightModeActive = false
     private var pendingResults: List<ScreenTextExtractor.ExtractedNode> = emptyList()
-
-    // Communicated back from AccessibilityDelegateService
-    var accessibilityServiceRef: AccessibilityDelegateService? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -91,7 +73,7 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
 
     private fun addTriggerButton() {
         val params = baseParams(
-            56.dp.value.toInt(), 56.dp.value.toInt(),
+            160, 160,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -101,6 +83,7 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
 
         var startX = 0; var startY = 0
         var startParamX = 0; var startParamY = 0
+        var isDragging = false
 
         val view = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@HighlightModeService)
@@ -108,17 +91,20 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
             setContent {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .background(Color(0xFF00D4FF), CircleShape)
-                        .clickable { activateHighlightMode() },
+                        .size(52.dp)
+                        .background(Color(0xFF00D4FF), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✦", color = Color.Black, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "✦",
+                        color = Color.Black,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
 
-        // Drag support
         view.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -126,12 +112,22 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                     startY = event.rawY.toInt()
                     startParamX = params.x
                     startParamY = params.y
-                    false
+                    isDragging = false
+                    true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    params.x = startParamX + (event.rawX - startX).toInt()
-                    params.y = startParamY + (event.rawY - startY).toInt()
-                    windowManager.updateViewLayout(view, params)
+                    val dx = event.rawX.toInt() - startX
+                    val dy = event.rawY.toInt() - startY
+                    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) isDragging = true
+                    if (isDragging) {
+                        params.x = startParamX + dx
+                        params.y = startParamY + dy
+                        windowManager.updateViewLayout(view, params)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (!isDragging) activateHighlightMode()
                     true
                 }
                 else -> false
@@ -152,7 +148,10 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
         val params = baseParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
+            // FIX: FLAG_NOT_FOCUSABLE keeps underlying windows in the
+            // accessibility window list — critical for node traversal
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         )
 
         val view = ComposeView(this).apply {
@@ -170,18 +169,22 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = 64.dp)
-                            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                            .background(
+                                Color.Black.copy(alpha = 0.7f),
+                                RoundedCornerShape(8.dp)
+                            )
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
-
-                    // Cancel button
                     Text(
                         text = "✕  Cancel",
                         color = Color(0xFF00D4FF),
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 48.dp)
-                            .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                            .background(
+                                Color.Black.copy(alpha = 0.8f),
+                                RoundedCornerShape(8.dp)
+                            )
                             .padding(horizontal = 20.dp, vertical = 10.dp)
                             .clickable { deactivateHighlightMode() }
                     )
@@ -201,17 +204,20 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     private fun handleTap(x: Int, y: Int) {
-        val root = accessibilityServiceRef?.rootInActiveWindow
-        val results = ScreenTextExtractor.extractAtPoint(root, x, y)
+        // FIX: Use windows list filtered by package, NOT rootInActiveWindow.
+        // rootInActiveWindow returns the focused window — which is our overlay.
+        // We need the background app's window nodes instead.
+        val service = AccessibilityServiceHolder.instance
+        val windows = service?.windows ?: emptyList()
 
-        if (results.isEmpty()) {
-            // Nothing found at exact point — fall back to full screen dump
-            val allResults = ScreenTextExtractor.extractAll(root)
-            pendingResults = allResults
-        } else {
-            pendingResults = results
-        }
+        val results = ScreenTextExtractor.extractAtPointFromBackground(
+            windows = windows,
+            ownPackage = packageName,
+            x = x,
+            y = y
+        )
 
+        pendingResults = results
         removeInterceptorOverlay()
         showResultSheet()
     }
@@ -246,7 +252,10 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Captured Text",
+                                text = if (captured.isEmpty())
+                                    "No text found"
+                                else
+                                    "${captured.size} string${if (captured.size > 1) "s" else ""} captured",
                                 color = Color(0xFF00D4FF),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp
@@ -254,10 +263,13 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                             Text(
                                 text = "✕",
                                 color = Color.White.copy(alpha = 0.5f),
-                                modifier = Modifier.clickable {
-                                    removeResultSheet()
-                                    highlightModeActive = false
-                                }
+                                fontSize = 18.sp,
+                                modifier = Modifier
+                                    .clickable {
+                                        removeResultSheet()
+                                        highlightModeActive = false
+                                    }
+                                    .padding(8.dp)
                             )
                         }
 
@@ -265,20 +277,24 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
 
                         if (captured.isEmpty()) {
                             Text(
-                                "No text found at that location",
+                                "The accessibility service couldn't read nodes at that location.\n" +
+                                "Try tapping directly on text rather than empty space.",
                                 color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 14.sp
+                                fontSize = 13.sp
                             )
                         } else {
                             LazyColumn(
-                                modifier = Modifier.heightIn(max = 320.dp),
+                                modifier = Modifier.heightIn(max = 360.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(captured) { text ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp))
+                                            .background(
+                                                Color(0xFF1A1A1A),
+                                                RoundedCornerShape(8.dp)
+                                            )
                                             .padding(12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
@@ -295,16 +311,18 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                                             color = Color(0xFF00D4FF),
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium,
-                                            modifier = Modifier.clickable {
-                                                val cm = getSystemService(
-                                                    Context.CLIPBOARD_SERVICE
-                                                ) as ClipboardManager
-                                                cm.setPrimaryClip(
-                                                    ClipData.newPlainText("ModOS", text)
-                                                )
-                                                removeResultSheet()
-                                                highlightModeActive = false
-                                            }
+                                            modifier = Modifier
+                                                .clickable {
+                                                    val cm = getSystemService(
+                                                        Context.CLIPBOARD_SERVICE
+                                                    ) as ClipboardManager
+                                                    cm.setPrimaryClip(
+                                                        ClipData.newPlainText("ModOS", text)
+                                                    )
+                                                    removeResultSheet()
+                                                    highlightModeActive = false
+                                                }
+                                                .padding(4.dp)
                                         )
                                     }
                                 }
