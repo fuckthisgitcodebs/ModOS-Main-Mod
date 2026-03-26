@@ -40,6 +40,16 @@
             android:name=".AccessibilityPermissionActivity"
             android:exported="false" />
 
+        <!-- Transparent focus-stealer for Android 12+ clipboard reads -->
+        <activity
+            android:name=".ClipboardFocusActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:launchMode="singleInstance" />
+
         <service
             android:name=".AccessibilityDelegateService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -53,9 +63,14 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- FIX: Overlay service for Android 12+ clipboard access -->
+        <!-- Clipboard change listener — triggers focus-stealer Activity -->
         <service
-            android:name=".ClipboardOverlayService"
+            android:name=".ClipboardListenerService"
+            android:exported="false" />
+
+        <!-- Highlight mode floating button + text extraction overlay -->
+        <service
+            android:name=".HighlightModeService"
             android:exported="false" />
 
     </application>
