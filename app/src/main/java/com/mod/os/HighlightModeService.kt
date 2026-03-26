@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.IBinder
+import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -61,6 +62,17 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+
+        // FIX: Check overlay permission before attempting to add any window.
+        // Crash was caused by trying to add TYPE_APPLICATION_OVERLAY without
+        // runtime grant — manifest declaration alone is insufficient.
+        if (!Settings.canDrawOverlays(this)) {
+            // Permission not granted — stop silently rather than crash-looping.
+            // MainActivity will prompt the user to grant it.
+            stopSelf()
+            return
+        }
+
         addTriggerButton()
     }
 
@@ -148,8 +160,6 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
         val params = baseParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
-            // FIX: FLAG_NOT_FOCUSABLE keeps underlying windows in the
-            // accessibility window list — critical for node traversal
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                     or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         )
@@ -169,10 +179,7 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = 64.dp)
-                            .background(
-                                Color.Black.copy(alpha = 0.7f),
-                                RoundedCornerShape(8.dp)
-                            )
+                            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                     Text(
@@ -181,10 +188,7 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 48.dp)
-                            .background(
-                                Color.Black.copy(alpha = 0.8f),
-                                RoundedCornerShape(8.dp)
-                            )
+                            .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 20.dp, vertical = 10.dp)
                             .clickable { deactivateHighlightMode() }
                     )
@@ -204,19 +208,14 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     private fun handleTap(x: Int, y: Int) {
-        // FIX: Use windows list filtered by package, NOT rootInActiveWindow.
-        // rootInActiveWindow returns the focused window — which is our overlay.
-        // We need the background app's window nodes instead.
         val service = AccessibilityServiceHolder.instance
         val windows = service?.windows ?: emptyList()
-
         val results = ScreenTextExtractor.extractAtPointFromBackground(
             windows = windows,
             ownPackage = packageName,
             x = x,
             y = y
         )
-
         pendingResults = results
         removeInterceptorOverlay()
         showResultSheet()
@@ -227,9 +226,7 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-        ).apply {
-            gravity = Gravity.BOTTOM
-        }
+        ).apply { gravity = Gravity.BOTTOM }
 
         val captured = pendingResults.map { it.text }.distinct()
 
@@ -252,10 +249,8 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (captured.isEmpty())
-                                    "No text found"
-                                else
-                                    "${captured.size} string${if (captured.size > 1) "s" else ""} captured",
+                                text = if (captured.isEmpty()) "No text found"
+                                       else "${captured.size} string${if (captured.size > 1) "s" else ""} captured",
                                 color = Color(0xFF00D4FF),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp
@@ -277,8 +272,8 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
 
                         if (captured.isEmpty()) {
                             Text(
-                                "The accessibility service couldn't read nodes at that location.\n" +
-                                "Try tapping directly on text rather than empty space.",
+                                "No text nodes found at that location.\n" +
+                                "Try tapping directly on visible text.",
                                 color = Color.White.copy(alpha = 0.5f),
                                 fontSize = 13.sp
                             )
@@ -291,10 +286,7 @@ class HighlightModeService : Service(), LifecycleOwner, SavedStateRegistryOwner 
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(
-                                                Color(0xFF1A1A1A),
-                                                RoundedCornerShape(8.dp)
-                                            )
+                                            .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp))
                                             .padding(12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
