@@ -15,17 +15,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * Foreground service that holds the ClipboardManager listener.
- *
- * WHY FOREGROUND: Samsung OneUI 8 Freecess process manager freezes background
- * processes aggressively. A frozen process cannot receive ClipboardManager
- * callbacks. Foreground services are exempted from Freecess freezing.
- * Without this, OnPrimaryClipChangedListener silently dies in the background.
- *
- * The persistent notification is the price of keeping the process alive.
- * Made minimal: no sound, no vibration, low priority, collapsed.
- */
 @AndroidEntryPoint
 class ClipboardListenerService : Service() {
 
@@ -45,7 +34,6 @@ class ClipboardListenerService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        // Promote to foreground BEFORE doing any work — required on Android 14+
         ServiceCompat.startForeground(
             this,
             NOTIF_ID,
@@ -71,7 +59,7 @@ class ClipboardListenerService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Clipboard Monitor",
-            NotificationManager.IMPORTANCE_MIN  // No sound, no pop-up, no badge
+            NotificationManager.IMPORTANCE_MIN
         ).apply {
             description = "Keeps ModOS clipboard monitoring active"
             setShowBadge(false)
@@ -85,18 +73,25 @@ class ClipboardListenerService : Service() {
     private fun buildNotification(): Notification {
         val openIntent = PendingIntent.getActivity(
             this, 0,
-            Intent(this, MainActivity::class.java),
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
             PendingIntent.FLAG_IMMUTABLE
         )
+        // FIX 1: android.R.drawable.ic_menu_clipboard doesn't exist in the
+        // framework. Use ic_dialog_info as a safe universal fallback —
+        // or add a custom drawable to the app for a proper icon later.
+        // FIX 2: setContentIntent requires the PendingIntent to be built
+        // before passing — done correctly here now.
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("ModOS")
             .setContentText("Clipboard monitoring active")
-            .setSmallIcon(android.R.drawable.ic_menu_clipboard)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(openIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setSilent(true)
-            .setVisibility(NotificationCompat.VISIBILITY_SECRET) // hidden on lock screen
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .build()
     }
 }
