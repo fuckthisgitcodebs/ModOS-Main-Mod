@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,11 +29,14 @@ class ClipboardListenerService : Service() {
     }
 
     private val listener = ClipboardManager.OnPrimaryClipChangedListener {
+        Log.d("ModOS_Clip", "OnPrimaryClipChangedListener fired — holder=${AccessibilityServiceHolder.instance}")
         AccessibilityServiceHolder.instance?.onClipboardChangedBySystem()
+            ?: Log.w("ModOS_Clip", "holder is null — accessibility service not connected yet")
     }
 
     override fun onCreate() {
         super.onCreate()
+        Log.d("ModOS_Clip", "ClipboardListenerService onCreate — starting foreground")
         createNotificationChannel()
         ServiceCompat.startForeground(
             this,
@@ -43,12 +47,16 @@ class ClipboardListenerService : Service() {
             else 0
         )
         clipboardManager.addPrimaryClipChangedListener(listener)
+        Log.d("ModOS_Clip", "Listener registered. Foreground active.")
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d("ModOS_Clip", "onStartCommand")
+        return START_STICKY
+    }
 
     override fun onDestroy() {
+        Log.d("ModOS_Clip", "ClipboardListenerService onDestroy")
         clipboardManager.removePrimaryClipChangedListener(listener)
         super.onDestroy()
     }
@@ -78,11 +86,6 @@ class ClipboardListenerService : Service() {
             },
             PendingIntent.FLAG_IMMUTABLE
         )
-        // FIX 1: android.R.drawable.ic_menu_clipboard doesn't exist in the
-        // framework. Use ic_dialog_info as a safe universal fallback —
-        // or add a custom drawable to the app for a proper icon later.
-        // FIX 2: setContentIntent requires the PendingIntent to be built
-        // before passing — done correctly here now.
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("ModOS")
             .setContentText("Clipboard monitoring active")

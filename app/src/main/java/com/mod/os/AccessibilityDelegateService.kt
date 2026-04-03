@@ -2,6 +2,7 @@ package com.mod.os
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -16,11 +17,11 @@ class AccessibilityDelegateService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        Log.d("ModOS_A11y", "onServiceConnected — setting holder, starting services")
         AccessibilityServiceHolder.instance = this
         startService(Intent(this, HighlightModeService::class.java))
-        // FIX: Was never started — this is what triggers ClipboardFocusActivity
-        // on clipboard change events, completing the capture pipeline
         startService(Intent(this, ClipboardListenerService::class.java))
+        Log.d("ModOS_A11y", "Services started. Holder = ${AccessibilityServiceHolder.instance}")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -40,14 +41,21 @@ class AccessibilityDelegateService : AccessibilityService() {
     }
 
     fun onClipboardChangedBySystem() {
-        val pkg = lastForegroundPackage ?: return
+        val pkg = lastForegroundPackage
+        Log.d("ModOS_Clip", "onClipboardChangedBySystem — foreground pkg = $pkg")
+        if (pkg == null) {
+            Log.w("ModOS_Clip", "foreground package is null — no copy event dispatched")
+            return
+        }
         val intent = ClipboardFocusActivity.createIntent(this, pkg, lastForegroundLabel)
+        Log.d("ModOS_Clip", "Launching ClipboardFocusActivity for pkg=$pkg")
         startActivity(intent)
     }
 
     override fun onInterrupt() {}
 
     override fun onDestroy() {
+        Log.d("ModOS_A11y", "onDestroy — nulling holder")
         AccessibilityServiceHolder.instance = null
         stopService(Intent(this, HighlightModeService::class.java))
         stopService(Intent(this, ClipboardListenerService::class.java))

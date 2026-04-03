@@ -3,8 +3,8 @@ package com.mod.os
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import com.mod.os.recents.clipboard.ClipboardRepository
@@ -15,18 +15,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * Transparent 1dp Activity whose sole purpose is to take genuine window focus
- * long enough for ClipboardManager.getPrimaryClip() to succeed on Android 12+
- * OneUI 8, then immediately finish.
- *
- * A Service overlay window does NOT satisfy Samsung's focus requirement.
- * An Activity with a focused window DOES. This is the distinction that
- * makes this approach work where the overlay service failed.
- *
- * Lifecycle: launched by AccessibilityDelegateService on clipboard change →
- * reads clipboard in onResume → stores → finishes. Total lifetime ~50–100ms.
- */
 @AndroidEntryPoint
 class ClipboardFocusActivity : ComponentActivity() {
 
@@ -36,8 +24,7 @@ class ClipboardFocusActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Make window 1x1 transparent — user sees nothing
+        Log.d("ModOS_Focus", "ClipboardFocusActivity onCreate")
         window.apply {
             setBackgroundDrawableResource(android.R.color.transparent)
             addFlags(
@@ -58,6 +45,7 @@ class ClipboardFocusActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        Log.d("ModOS_Focus", "ClipboardFocusActivity onResume — attempting clipboard read")
 
         val sourcePackage = intent.getStringExtra(EXTRA_SOURCE_PACKAGE) ?: "unknown"
         val sourceLabel = intent.getStringExtra(EXTRA_SOURCE_LABEL) ?: "Clipboard"
@@ -69,6 +57,8 @@ class ClipboardFocusActivity : ComponentActivity() {
             ?.toString()
             ?.takeIf { it.isNotBlank() }
 
+        Log.d("ModOS_Focus", "Clipboard read result: ${if (clip != null) "GOT content (${clip.take(40)})" else "NULL — denied or empty"}")
+
         if (clip != null) {
             scope.launch {
                 repository.addClipboardContent(
@@ -77,10 +67,10 @@ class ClipboardFocusActivity : ComponentActivity() {
                     sourcePackage = sourcePackage,
                     sourceLabel = sourceLabel
                 )
+                Log.d("ModOS_Focus", "Stored clip from $sourcePackage")
             }
         }
 
-        // Finish immediately — don't linger in task stack
         finishAndRemoveTask()
     }
 
@@ -88,19 +78,16 @@ class ClipboardFocusActivity : ComponentActivity() {
         const val EXTRA_SOURCE_PACKAGE = "source_package"
         const val EXTRA_SOURCE_LABEL = "source_label"
 
-        fun createIntent(
-            context: Context,
-            sourcePackage: String,
-            sourceLabel: String?
-        ) = Intent(context, ClipboardFocusActivity::class.java).apply {
-            putExtra(EXTRA_SOURCE_PACKAGE, sourcePackage)
-            putExtra(EXTRA_SOURCE_LABEL, sourceLabel)
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK
-                        or Intent.FLAG_ACTIVITY_NO_ANIMATION
-                        or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                        or Intent.FLAG_ACTIVITY_NO_HISTORY
-            )
-        }
+        fun createIntent(context: Context, sourcePackage: String, sourceLabel: String?) =
+            Intent(context, ClipboardFocusActivity::class.java).apply {
+                putExtra(EXTRA_SOURCE_PACKAGE, sourcePackage)
+                putExtra(EXTRA_SOURCE_LABEL, sourceLabel)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+                            or Intent.FLAG_ACTIVITY_NO_ANIMATION
+                            or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                            or Intent.FLAG_ACTIVITY_NO_HISTORY
+                )
+            }
     }
 }
