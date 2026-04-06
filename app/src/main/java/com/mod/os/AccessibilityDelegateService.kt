@@ -17,11 +17,10 @@ class AccessibilityDelegateService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        Log.d("ModOS_A11y", "onServiceConnected — setting holder, starting services")
+        Log.d("ModOS_A11y", "onServiceConnected")
         AccessibilityServiceHolder.instance = this
         startService(Intent(this, HighlightModeService::class.java))
         startService(Intent(this, ClipboardListenerService::class.java))
-        Log.d("ModOS_A11y", "Services started. Holder = ${AccessibilityServiceHolder.instance}")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -37,25 +36,26 @@ class AccessibilityDelegateService : AccessibilityService() {
             } catch (e: Exception) {
                 pkg.split(".").last()
             }
+            // Forward to ClipboardListenerService so it has fresh foreground context
+            ClipboardListenerServiceHolder.instance?.updateForegroundApp(
+                lastForegroundPackage!!,
+                lastForegroundLabel
+            )
         }
     }
 
+    // Kept for compatibility — now ClipboardListenerService handles dispatch directly
     fun onClipboardChangedBySystem() {
-        val pkg = lastForegroundPackage
-        Log.d("ModOS_Clip", "onClipboardChangedBySystem — foreground pkg = $pkg")
-        if (pkg == null) {
-            Log.w("ModOS_Clip", "foreground package is null — no copy event dispatched")
-            return
-        }
+        val pkg = lastForegroundPackage ?: return
+        Log.d("ModOS_Clip", "onClipboardChangedBySystem — pkg=$pkg")
         val intent = ClipboardFocusActivity.createIntent(this, pkg, lastForegroundLabel)
-        Log.d("ModOS_Clip", "Launching ClipboardFocusActivity for pkg=$pkg")
         startActivity(intent)
     }
 
     override fun onInterrupt() {}
 
     override fun onDestroy() {
-        Log.d("ModOS_A11y", "onDestroy — nulling holder")
+        Log.d("ModOS_A11y", "onDestroy")
         AccessibilityServiceHolder.instance = null
         stopService(Intent(this, HighlightModeService::class.java))
         stopService(Intent(this, ClipboardListenerService::class.java))

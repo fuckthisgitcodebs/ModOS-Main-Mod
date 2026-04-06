@@ -14,7 +14,13 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.mod.os.recents.clipboard.ClipboardRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ClipboardListenerService : Service() {
@@ -24,19 +30,72 @@ class ClipboardListenerService : Service() {
         const val NOTIF_ID = 1001
     }
 
+    @Inject lateinit var repository: ClipboardRepository
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val clipboardManager by lazy {
         getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     }
 
+    private var lastForegroundPackage: String? = null
+    private var lastForegroundLabel: String? = null
+    private var lastClip: String? = null
+
+    // Called by AccessibilityDelegateService when foreground app changes
+    fun updateForegroundApp(pkg: String, label: String?) {
+        lastForegroundPackage = pkg
+        lastForegroundLabel = label
+    }
+
     private val listener = ClipboardManager.OnPrimaryClipChangedListener {
-        Log.d("ModOS_Clip", "OnPrimaryClipChangedListener fired — holder=${AccessibilityServiceHolder.instance}")
-        AccessibilityServiceHolder.instance?.onClipboardChangedBySystem()
-            ?: Log.w("ModOS_Clip", "holder is null — accessibility service not connected yet")
+        Log.d("ModOS_Clip", "Listener fired — attempting direct foreground service read")
+
+        // STRATEGY: Read clipboard directly from foreground service.
+        // Previously tried from background service — denied.
+        // Foreground service (dataSync type) may have different access rules.
+        // If this also returns null, we confirm the wall is absolute.
+        val clip = try {
+            clipboardManager.primaryClip
+                ?.getItemAt(0)
+                ?.coerceToText(applicationContext)
+                ?.toString()
+                ?.takeIf { it.isNotBlank() }
+        } catch (e: Exception) {
+            Log.e("ModOS_Clip", "Exception reading clipboard: ${e.message}")
+            null
+        }
+
+        Log.d("ModOS_Clip", "Direct read result: ${
+            if (clip != null) "SUCCESS — ${clip.take(40)}"
+            else "NULL (denied or empty)"
+        }")
+
+        if (clip != null && clip != lastClip) {
+            lastClip = clip
+            val pkg = lastForegroundPackage ?: "unknown"
+            val label = lastForegroundLabel ?: "Clipboard"
+            scope.launch {
+                repository.addClipboardContent(
+                    content = clip,
+                    mimeType = "text/plain",
+                    sourcePackage = pkg,
+                    sourceLabel = label
+                )
+                Log.d("ModOS_Clip", "Stored clip from $pkg: ${clip.take(40)}")
+            }
+        } else if (clip == null) {
+            // Direct read denied — fall back to Activity focus-stealer
+            Log.w("ModOS_Clip", "Direct read denied — launching ClipboardFocusActivity")
+            val pkg = lastForegroundPackage ?: return@OnPrimaryClipChangedListener
+            val intent = ClipboardFocusActivity.createIntent(this, pkg, lastForegroundLabel)
+            startActivity(intent)
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("ModOS_Clip", "ClipboardListenerService onCreate — starting foreground")
+        Log.d("ModOS_Clip", "ClipboardListenerService onCreate")
         createNotificationChannel()
         ServiceCompat.startForeground(
             this,
@@ -47,16 +106,18 @@ class ClipboardListenerService : Service() {
             else 0
         )
         clipboardManager.addPrimaryClipChangedListener(listener)
+        // Register self with holder so AccessibilityDelegateService can
+        // forward foreground app updates to us
+        ClipboardListenerServiceHolder.instance = this
         Log.d("ModOS_Clip", "Listener registered. Foreground active.")
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("ModOS_Clip", "onStartCommand")
-        return START_STICKY
-    }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
+        START_STICKY
 
     override fun onDestroy() {
         Log.d("ModOS_Clip", "ClipboardListenerService onDestroy")
+        ClipboardListenerServiceHolder.instance = null
         clipboardManager.removePrimaryClipChangedListener(listener)
         super.onDestroy()
     }
@@ -97,4 +158,8 @@ class ClipboardListenerService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .build()
     }
+}
+
+object ClipboardListenerServiceHolder {
+    var instance: ClipboardListenerService? = null
 }
