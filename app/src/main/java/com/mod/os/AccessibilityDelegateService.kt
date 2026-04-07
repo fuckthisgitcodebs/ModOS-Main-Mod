@@ -12,9 +12,6 @@ class AccessibilityDelegateService : AccessibilityService() {
 
     @Inject lateinit var hostBridge: HostBridgeImpl
 
-    private var lastForegroundPackage: String? = null
-    private var lastForegroundLabel: String? = null
-
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.d("ModOS_A11y", "onServiceConnected")
@@ -28,28 +25,15 @@ class AccessibilityDelegateService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: return
             if (pkg == packageName || pkg == "com.android.systemui") return
-            lastForegroundPackage = pkg
-            lastForegroundLabel = try {
+            val label = try {
                 packageManager.getApplicationLabel(
                     packageManager.getApplicationInfo(pkg, 0)
                 ).toString()
             } catch (e: Exception) {
                 pkg.split(".").last()
             }
-            // Forward to ClipboardListenerService so it has fresh foreground context
-            ClipboardListenerServiceHolder.instance?.updateForegroundApp(
-                lastForegroundPackage!!,
-                lastForegroundLabel
-            )
+            ClipboardListenerServiceHolder.instance?.updateForegroundApp(pkg, label)
         }
-    }
-
-    // Kept for compatibility — now ClipboardListenerService handles dispatch directly
-    fun onClipboardChangedBySystem() {
-        val pkg = lastForegroundPackage ?: return
-        Log.d("ModOS_Clip", "onClipboardChangedBySystem — pkg=$pkg")
-        val intent = ClipboardFocusActivity.createIntent(this, pkg, lastForegroundLabel)
-        startActivity(intent)
     }
 
     override fun onInterrupt() {}

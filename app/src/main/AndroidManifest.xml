@@ -6,11 +6,8 @@
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
-    <!-- Required for foreground service on Android 9+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- Required for foreground service type dataSync on Android 14+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <!-- Required to post the foreground notification on Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -46,15 +43,6 @@
             android:name=".AccessibilityPermissionActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ClipboardFocusActivity"
-            android:exported="false"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:taskAffinity=""
-            android:launchMode="singleInstance" />
-
         <service
             android:name=".AccessibilityDelegateService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -68,7 +56,6 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Foreground service — exempted from Samsung Freecess process freezing -->
         <service
             android:name=".ClipboardListenerService"
             android:exported="false"
