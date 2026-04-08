@@ -42,19 +42,12 @@ class ClipboardListenerService : Service() {
     private var lastForegroundLabel: String? = null
     private var lastClip: String? = null
 
-    // Called by AccessibilityDelegateService when foreground app changes
     fun updateForegroundApp(pkg: String, label: String?) {
         lastForegroundPackage = pkg
         lastForegroundLabel = label
     }
 
     private val listener = ClipboardManager.OnPrimaryClipChangedListener {
-        Log.d("ModOS_Clip", "Listener fired — attempting direct foreground service read")
-
-        // STRATEGY: Read clipboard directly from foreground service.
-        // Previously tried from background service — denied.
-        // Foreground service (dataSync type) may have different access rules.
-        // If this also returns null, we confirm the wall is absolute.
         val clip = try {
             clipboardManager.primaryClip
                 ?.getItemAt(0)
@@ -66,10 +59,7 @@ class ClipboardListenerService : Service() {
             null
         }
 
-        Log.d("ModOS_Clip", "Direct read result: ${
-            if (clip != null) "SUCCESS — ${clip.take(40)}"
-            else "NULL (denied or empty)"
-        }")
+        Log.d("ModOS_Clip", "Read: ${if (clip != null) "SUCCESS — ${clip.take(40)}" else "NULL"}")
 
         if (clip != null && clip != lastClip) {
             lastClip = clip
@@ -82,20 +72,14 @@ class ClipboardListenerService : Service() {
                     sourcePackage = pkg,
                     sourceLabel = label
                 )
-                Log.d("ModOS_Clip", "Stored clip from $pkg: ${clip.take(40)}")
+                Log.d("ModOS_Clip", "Stored from $pkg")
             }
-        } else if (clip == null) {
-            // Direct read denied — fall back to Activity focus-stealer
-            Log.w("ModOS_Clip", "Direct read denied — launching ClipboardFocusActivity")
-            val pkg = lastForegroundPackage ?: return@OnPrimaryClipChangedListener
-            val intent = ClipboardFocusActivity.createIntent(this, pkg, lastForegroundLabel)
-            startActivity(intent)
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("ModOS_Clip", "ClipboardListenerService onCreate")
+        Log.d("ModOS_Clip", "onCreate — starting foreground")
         createNotificationChannel()
         ServiceCompat.startForeground(
             this,
@@ -106,17 +90,13 @@ class ClipboardListenerService : Service() {
             else 0
         )
         clipboardManager.addPrimaryClipChangedListener(listener)
-        // Register self with holder so AccessibilityDelegateService can
-        // forward foreground app updates to us
         ClipboardListenerServiceHolder.instance = this
-        Log.d("ModOS_Clip", "Listener registered. Foreground active.")
+        Log.d("ModOS_Clip", "Listener registered.")
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
-        Log.d("ModOS_Clip", "ClipboardListenerService onDestroy")
         ClipboardListenerServiceHolder.instance = null
         clipboardManager.removePrimaryClipChangedListener(listener)
         super.onDestroy()
@@ -126,17 +106,15 @@ class ClipboardListenerService : Service() {
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Clipboard Monitor",
-            NotificationManager.IMPORTANCE_MIN
+            CHANNEL_ID, "Clipboard Monitor", NotificationManager.IMPORTANCE_MIN
         ).apply {
             description = "Keeps ModOS clipboard monitoring active"
             setShowBadge(false)
             enableLights(false)
             enableVibration(false)
         }
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(channel)
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .createNotificationChannel(channel)
     }
 
     private fun buildNotification(): Notification {
